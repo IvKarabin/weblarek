@@ -1,1 +1,248 @@
 import './scss/styles.scss';
+import { API_URL } from './utils/constants';
+import { cloneTemplate, ensureElement } from './utils/utils';
+import { EventEmitter } from './components/base/Events';
+import { Api } from './components/base/Api';
+import { WebLarekApi } from './components/Serverapi/larekserver';
+import { Buyer } from './components/Models/buyer';
+import { Cart } from './components/Models/cart';
+import { Catalog } from './components/Models/catalog';
+import { IApi, IProduct, IOrder } from './types';
+import { Basket } from './components/View/basket';
+import { CardBasket } from './components/View/cardBasket';
+import { CardCatalog } from './components/View/cardCatalog';
+import { CardPreview } from './components/View/cardModalPreview';
+import { Gallery } from './components/View/gallery';
+import { Modal } from './components/View/modal';
+import { HeaderBasket } from './components/View/headerBasket';
+import { FormOrder } from './components/View/formOrder';
+import { FormUserInfo } from './components/View/formUserInfo';
+import { OrderSuccess } from './components/View/orderSuccess';
+
+/**
+ * Константы / переменные
+ */
+const events = new EventEmitter();
+const products = new Catalog(events);
+const cart = new Cart(events);
+const buyer = new Buyer(events);
+
+const api: IApi = new Api(API_URL);
+const weblarekapi = new WebLarekApi(api);
+
+const container: HTMLElement = ensureElement<HTMLElement>('.page');
+const headerElement: HTMLElement = ensureElement<HTMLElement>('.header', container);
+const header = new HeaderBasket(headerElement, events);
+const cardCatalogTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#card-catalog', container);
+const galleryElement: HTMLElement = ensureElement<HTMLElement>('.gallery', container);
+const gallery = new Gallery(galleryElement);
+const modalElement: HTMLElement = ensureElement<HTMLElement>('#modal-container', container);
+const modal = new Modal(modalElement, events);
+const cardPreviewTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#card-preview', container);
+const cardPreview = new CardPreview(cloneTemplate(cardPreviewTemplate), events);
+const basketTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#basket', container);
+const basket = new Basket(cloneTemplate(basketTemplate), events);
+const cardBasketTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#card-basket', container);
+const orderTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#order', container);
+const order = new FormOrder(cloneTemplate(orderTemplate), events);
+const contactsTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#contacts', container);
+const contacts = new FormUserInfo(cloneTemplate(contactsTemplate), events);
+const successTemplate: HTMLTemplateElement = ensureElement<HTMLTemplateElement>('#success', container);
+const success = new OrderSuccess(cloneTemplate(successTemplate), events);
+
+let isBasketActive = false;
+
+/** 
+ * загрузка товаров
+*/
+(async () => {
+    try {
+        const productsList: IProduct[] = await weblarekapi.getProducts();
+        products.setItems(productsList);
+    } catch (error) {
+        console.error('Ошибка загрузки данных с сервера', error);
+    }
+})();
+
+/**
+ * События
+ */
+// Каталог
+events.on('products:changed', () => {
+    const itemsCards = products.getItems().map((item) => {
+        const card = new CardCatalog(cloneTemplate(cardCatalogTemplate), {
+            onClick: () => events.emit('card:select', item),
+        });
+        return card.render(item);
+    });
+    gallery.render({catalog: itemsCards});
+});
+
+//Карточки
+events.on('card:select', (item:IProduct) => {
+    products.setSelectedItem(item);
+});
+
+events.on('product:selected', (data:IProduct) => {
+    modal.open();
+    cardPreview.title = data.title;
+    cardPreview.price = data.price ?? 0;
+    cardPreview.image = data.image;
+    cardPreview.category = data.category;
+    cardPreview.description = data.description;
+
+    if (data.price) {
+        if (cart.hasItem(data.id)) {
+            cardPreview.buttonState = 'remove';
+        } else {
+            cardPreview.buttonState = 'add';
+        }
+    } else {
+        cardPreview.buttonState = 'disabled';
+    };
+
+    modal.content = cardPreview.render();
+    isBasketActive = false;
+});
+
+events.on('card:add', () => {
+    cart.addItem(products.getSelectedItem() as IProduct);
+});
+
+events.on('card:remove', () => {
+  cart.deleteItem(products.getSelectedItem() as IProduct);
+});
+
+// Модалки
+events.on('modal:close', () => {
+    modal.close();
+    isBasketActive = false;
+});
+
+//Корзина
+events.on('basket:open', () => {
+    modal.open();
+    isBasketActive = true;
+    modal.content = basket.render();
+});
+
+events.on('order', () => {
+    validateFormOrder();
+    modal.open();
+    isBasketActive = false;
+    modal.content = order.render();
+});
+
+events.on('cart:changed', () => {
+    header.counter = cart.getCount();
+    renderBasket();
+    if (isBasketActive) {
+        modal.content = basket.render();
+    };
+});
+
+// Заказ
+events.on('order.payment',(data: {payment: 'card' | 'cash'}) => {
+    buyer.setPayment(data.payment as 'card' | 'cash');
+    validateFormOrder();
+});
+
+events.on('order:address', (data: {address: string}) => {
+    buyer.setAddress(data.address);
+    validateFormOrder();
+});
+
+events.on('order:next', () => {
+    validateFormUserInfo();
+    modal.content = contacts.render();
+    isBasketActive = false;
+});
+
+// Данные пользователя
+events.on('contacts:email', (data: {email: string}) => {
+    buyer.setEmail(data.email);
+    validateFormUserInfo();
+});
+
+events.on('contacts:phone', (data: { phone: string}) => {
+    buyer.setPhone(data.phone);
+    validateFormUserInfo();
+});
+
+/**
+ * Функции
+ */
+// Окно корзины
+function renderBasket() {
+    basket.products = cart.getItems().map((item, index) => {
+        const card = new CardBasket(cloneTemplate(cardBasketTemplate), events, {
+            onRemove: () => {
+                cart.deleteItem(item);
+            }
+        });
+        card.index = index + 1;
+        card.title = item.title;
+        card.price = item.price ?? 0;
+        return card.render();
+    });
+    basket.total = cart.getTotal();
+    basket.buttonState = cart.getCount() > 0 ? 'enabled' : 'disabled';
+    if (cart.getCount() === 0) {
+        basket.message = 'В корзине пусто';
+    }
+}
+
+//Валидация заказа
+function validateFormOrder() {
+    const payValid = buyer.validatePayment();
+    const addressValid = buyer.validateAddress();
+    const isValid = payValid.isValid && addressValid.isValid;
+    const error = !payValid.isValid ? payValid.error : addressValid.error;
+    
+    order.buttonState = isValid;
+    order.error = error ?? '';
+}
+
+//Валидация контактной информации
+function validateFormUserInfo() {
+    const emailValid = buyer.validateEmail();
+    const phoneValid = buyer.validatePhone();
+    const isValid = emailValid.isValid && phoneValid.isValid;
+    const error = !emailValid.isValid ? emailValid.error : phoneValid.error;
+
+    contacts.buttonState = isValid;
+    contacts.error = error ?? '';
+}
+
+/**
+ * Создание заказа
+ */
+events.on('order:submit', async () => {
+    const buyerData = buyer.getData();
+    const itemsCart = cart.getItems();
+    if (!buyerData.payment || !buyerData.address || !buyerData.email || !buyerData.phone || itemsCart.length === 0) {
+        return;
+    };
+    const orderRequest: IOrder = {
+        payment: buyerData.payment,
+        address: buyerData.address,
+        email: buyerData.email,
+        phone: buyerData.phone,
+        total: cart.getTotal(),
+        items: itemsCart.map((p) => p.id),
+    };
+
+    try {
+        const orderResponse = await weblarekapi.postOrder(orderRequest);
+        success.total = orderResponse.total ?? cart.getTotal();
+        if (!modal.isOpen()) {
+            modal.open();
+        };
+        modal.content = success.render();
+        isBasketActive = false;
+        cart.clear();
+        buyer.clearData();
+    } catch (e) {
+        order.error = 'Ошибка оформления заказа';
+    };
+});
