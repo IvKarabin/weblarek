@@ -127,6 +127,9 @@ events.on('basket:open', () => {
 });
 
 events.on('order', () => {
+    if (cart.getCount() === 0) {
+        return;
+    }
     validateFormOrder();
     modal.open();
     isBasketActive = false;
@@ -186,18 +189,14 @@ function renderBasket() {
         return card.render();
     });
     basket.total = cart.getTotal();
-    basket.buttonState = cart.getCount() > 0 ? 'enabled' : 'disabled';
-    if (cart.getCount() === 0) {
-        basket.message = 'В корзине пусто';
-    }
-}
+};
 
 //Валидация заказа
 function validateFormOrder() {
     const payValid = buyer.validatePayment();
     const addressValid = buyer.validateAddress();
-    const isValid = payValid.isValid && addressValid.isValid;
-    const error = !payValid.isValid ? payValid.error : addressValid.error;
+    const isValid = payValid.isValid && addressValid.isValid && cart.getCount() > 0;
+    const error = !payValid.isValid ? payValid.error : !addressValid.isValid ? addressValid.error : cart.getCount() === 0 ? 'Корзина пуста' : undefined;
     
     order.buttonState = isValid;
     order.error = error ?? '';

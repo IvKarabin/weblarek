@@ -7,7 +7,7 @@ interface IBasket {
   products: HTMLElement[];
   total: number;
   message: string;
-  buttonState: 'disabled' | 'enabled';
+  buttonState: boolean;
 }
 
 export class Basket extends Component<IBasket> {
@@ -29,17 +29,22 @@ export class Basket extends Component<IBasket> {
 
   set products(products: HTMLElement[]) {
     this.listElement.innerHTML = '';
-    products.forEach(product => {
-      this.listElement.append(product);
-    });
+    if (products.length === 0) {
+      this.listElement.textContent = 'Корзина пуста';
+      this.total = 0;
+      this.buttonState = false;
+    } else {
+      products.forEach(product => this.listElement.append(product));
+      this.buttonState = true;
+    }  
   }
 
   set total(value: number) {
     this.totalElement.textContent = `${String(value)} синапсов`;
   }
 
-  set buttonState(state: 'disabled' | 'enabled') {
-    if (state === 'disabled') {
+  set buttonState(state: boolean) {
+    if (state === false) {
       this.button.disabled = true;
     } else {
       this.button.disabled = false;

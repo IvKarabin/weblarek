@@ -68,12 +68,16 @@ export class Buyer {
   validateEmail(): { isValid: boolean, error?: string } {
     if (!this.email && this.email.trim() === "") {
       return { isValid: false, error: "Введите электронную почту" };
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+      return { isValid: false, error: "Электронная почта заполнена некорректно" };
     }
     return { isValid: true };
   }
   validatePhone(): { isValid: boolean, error?: string } {
     if (!this.phone && this.phone.trim() === "") {
       return { isValid: false, error: "Введите номер телефона" };
+    } else if (!/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/.test(this.phone)) {
+      return { isValid: false, error: "Номер телефона заполнен некорректно" };
     }
     return { isValid: true };
   }

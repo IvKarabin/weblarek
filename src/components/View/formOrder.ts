@@ -1,4 +1,3 @@
-
 import { ensureElement, ensureAllElements } from "../../utils/utils";
 import { FormStandart } from "./formStandart";
 import { IEvents } from "../base/Events";
@@ -10,7 +9,7 @@ interface IFormOrder {
 
 export class FormOrder extends FormStandart<IFormOrder> {
   protected paymentElement: 'card' | 'cash' | null;
-  protected paymentButtons: HTMLElement[];
+  protected paymentButtons: HTMLButtonElement[];
   protected addressElement: HTMLInputElement;
   
   constructor(container: HTMLElement, protected events: IEvents) {
@@ -19,6 +18,7 @@ export class FormOrder extends FormStandart<IFormOrder> {
     this.paymentButtons = Array.from(ensureAllElements('.order__buttons .button_alt', this.container));
     this.addressElement = ensureElement<HTMLInputElement>('.form__input', this.container);
     this.paymentElement = null;
+    this.updateButtonState();
 
     this.paymentButtons.forEach((button) => {
       button.addEventListener('click', (event: MouseEvent) => {
@@ -26,11 +26,13 @@ export class FormOrder extends FormStandart<IFormOrder> {
         const value = target.name as 'card' | 'cash';
         this.payment = value;
         this.events.emit('order:payment', { payment: value });
+        this.updateButtonState();
       });
     });
 
     this.addressElement.addEventListener('input', () => {
       this.events.emit('order:address', { address: this.addressElement.value });
+      this.updateButtonState();
     });
 
     this.button.addEventListener('click', () => {
@@ -52,5 +54,14 @@ export class FormOrder extends FormStandart<IFormOrder> {
 
   set address(value: string) {
     this.addressElement.value = value;
+    this.updateButtonState();
+  }
+
+  protected validate(): boolean {
+    return Boolean(this.paymentElement && this.addressElement.value.trim());
+  }
+
+  protected updateButtonState(): void {
+    this.buttonState = this.validate();
   }
 }

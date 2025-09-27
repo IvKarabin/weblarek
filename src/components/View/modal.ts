@@ -22,7 +22,7 @@ export class Modal extends Component<IModal> {
       });
 
       this.container.addEventListener('click', (event: MouseEvent) => {
-        if (event.target !== this.container) {
+        if (event.target === this.container) {
           this.events.emit('modal:close');
         }
       });
