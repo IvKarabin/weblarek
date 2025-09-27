@@ -42,13 +42,25 @@ export class FormUserInfo extends FormStandart<IFormUserInfo> {
   }
 
   private phoneFormat(value: string): string {
-    let phNumbers = value.replace(/\D/g, '');
-    let formattedPhoneNumber = '';
+    let phNumbers = value.replace(/\D/g, '').slice(0, 11);
+    if (!phNumbers) return '';
     if (phNumbers.startsWith('8')) {
-        formattedPhoneNumber = '+7 (' + phNumbers.substring(1, 4) + ') ' + phNumbers.substring(4, 7) + '-' + phNumbers.substring(7, 9) + '-' + phNumbers.substring(9, 11);
-    } else {
-        formattedPhoneNumber = '+7 (' + phNumbers.substring(0, 3) + ') ' + phNumbers.substring(3, 6) + '-' + phNumbers.substring(6, 8) + '-' + phNumbers.substring(8, 10);
-    }
+      phNumbers = '7' + phNumbers.slice(1);
+    };
+    let formattedPhoneNumber = '+7'
+
+    if (phNumbers.length > 1) {
+      formattedPhoneNumber += ` (${phNumbers.slice(1, 4)})`
+    };
+    if (formattedPhoneNumber.length >= 4) {
+      formattedPhoneNumber += ` ${phNumbers.slice(4,7)}`
+    };
+    if (formattedPhoneNumber.length >= 7) {
+      formattedPhoneNumber += `-${phNumbers.slice(7,9)}`
+    };
+    if (formattedPhoneNumber.length >= 9) {
+      formattedPhoneNumber += `-${phNumbers.slice(9,11)}`
+    };
     return formattedPhoneNumber;
   }
 }
