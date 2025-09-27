@@ -11,6 +11,8 @@
     margin: 0;
     flex-grow: 1;
     color: rgba(255, 255, 255, 0.3);
+    overflow-y: auto;
+    max-height: 50vh;
   }
 
   &__item {

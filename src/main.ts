@@ -187,11 +187,6 @@ function renderBasket() {
         return card.render();
     });
     basket.total = cart.getTotal();
-   /* if (cart.getCount() === 0) {
-        basket.buttonState = 'disabled';
-    } else {
-        basket.buttonState = 'enabled';
-    }*/
 };
 
 //Валидация заказа
@@ -222,9 +217,12 @@ function validateFormUserInfo() {
 events.on('order:submit', async () => {
     const buyerData = buyer.getData();
     const itemsCart = cart.getItems();
-    if (!buyerData.payment || !buyerData.address || !buyerData.email || !buyerData.phone || itemsCart.length === 0) {
+
+    if (!buyerData.payment || !buyerData.address || !buyerData.email || !buyerData.phone || itemsCart.length === 0 || !order.buttonState || !contacts.buttonState) {
+        order.error = 'заполните все поля';
         return;
     };
+
     const orderRequest: IOrder = {
         payment: buyerData.payment,
         address: buyerData.address,
