@@ -6,8 +6,7 @@ import { IEvents } from "../base/Events";
 interface IBasket {
   products: HTMLElement[];
   total: number;
-  message: string;
-  buttonState: boolean;
+  buttonState: 'disabled' | 'enabled';
 }
 
 export class Basket extends Component<IBasket> {
@@ -32,10 +31,10 @@ export class Basket extends Component<IBasket> {
     if (products.length === 0) {
       this.listElement.textContent = 'Корзина пуста';
       this.total = 0;
-      this.buttonState = false;
+      this.buttonState = 'disabled';
     } else {
       products.forEach(product => this.listElement.append(product));
-      this.buttonState = true;
+      this.buttonState = 'enabled';
     }  
   }
 
@@ -43,15 +42,11 @@ export class Basket extends Component<IBasket> {
     this.totalElement.textContent = `${String(value)} синапсов`;
   }
 
-  set buttonState(state: boolean) {
-    if (state === false) {
-      this.button.disabled = true;
-    } else {
-      this.button.disabled = false;
+  set buttonState(state: 'disabled' | 'enabled') {
+    if (state === 'disabled') { 
+      this.button.disabled = true; 
+    } else { 
+      this.button.disabled = false; 
     }
-  }
-
-  set message(value: string) {
-    this.listElement.textContent = value;
   }
 }

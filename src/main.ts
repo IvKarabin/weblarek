@@ -123,13 +123,11 @@ events.on('modal:close', () => {
 events.on('basket:open', () => {
     modal.open();
     isBasketActive = true;
+    renderBasket();
     modal.content = basket.render();
 });
 
 events.on('order', () => {
-    if (cart.getCount() === 0) {
-        return;
-    }
     validateFormOrder();
     modal.open();
     isBasketActive = false;
@@ -189,6 +187,11 @@ function renderBasket() {
         return card.render();
     });
     basket.total = cart.getTotal();
+   /* if (cart.getCount() === 0) {
+        basket.buttonState = 'disabled';
+    } else {
+        basket.buttonState = 'enabled';
+    }*/
 };
 
 //Валидация заказа
