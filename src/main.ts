@@ -131,7 +131,6 @@ events.on('basket:open', () => {
     isBasketActive = true;
     modal.open();
     renderBasket();
-    ('basket:open');
     modal.content = basket.render();
 });
 
@@ -190,10 +189,6 @@ function renderBasket() {
             }
         });
         card.index = index + 1;
-        card.image = {
-            url: item.image ?? '', 
-            title: item.title
-        };
         card.title = item.title;
         card.price = item.price ?? 0;
         return card.render();
