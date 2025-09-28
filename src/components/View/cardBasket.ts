@@ -1,6 +1,7 @@
 import { ensureElement } from "../../utils/utils";
 import { IEvents } from "../base/Events";
 import { StandartCard } from "./cardStandart";
+import { CDN_URL } from "../../utils/constants";
 
 export interface ICardBasket {
   index: number;
@@ -30,4 +31,11 @@ export class CardBasket extends StandartCard<ICardBasket> {
   set index(value: number) {
     this.indexElement.textContent = String(value);
   }
+
+  set image(data: {url: string; title: string}) {
+  this.cardImage = { 
+    url: `${CDN_URL}/${data.url}`, 
+    title: data.title 
+  };
+}
 }

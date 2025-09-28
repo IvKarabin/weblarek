@@ -32,14 +32,22 @@ export class Modal extends Component<IModal> {
     this.contentElement.replaceChildren(template);
   }
 
+  _handleEscape = (evt:KeyboardEvent) => {
+    if (evt.key === 'Escape') {
+      this.close();
+    }
+  }
+
   open(): void {
     this.container.classList.add('modal_active');
     document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', this._handleEscape);
   }
 
   close(): void {
     this.container.classList.remove('modal_active');
     document.body.style.overflow = '';
+    document.removeEventListener('keydown', this._handleEscape);
   }
 
   isOpen(): boolean {

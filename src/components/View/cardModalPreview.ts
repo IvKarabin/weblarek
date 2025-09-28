@@ -10,7 +10,8 @@ export class CardPreview extends StandartCard<TCardPreview> {
   protected imageElement: HTMLImageElement;
   protected categoryElement: HTMLElement;
   protected descriptionElement: HTMLElement;
-  protected button: HTMLButtonElement
+  protected button: HTMLButtonElement;
+  protected item: IProduct | null = null;
 
   constructor(container: HTMLElement, protected events: IEvents) {
     super(container);
@@ -21,15 +22,31 @@ export class CardPreview extends StandartCard<TCardPreview> {
     this.button = ensureElement<HTMLButtonElement>('.card__button', this.container);
 
     this.button.addEventListener('click', () => {
+      if (!this.item) return;
       const currentState = this.button.textContent;
       if (currentState === 'Добавить в корзину') {
-        this.events.emit('card:add');
+        this.events.emit('card:add', {item: this.item});
         this.buttonState = 'remove';
       } else if (currentState === 'Удалить из корзины') {
-        this.events.emit('card:remove');
+        this.events.emit('card:remove', {item: this.item});
         this.buttonState = 'add';
       }
     });
+  }
+
+  set data(item: IProduct) {
+    this.item = item;
+    this.titleElement.textContent = item.title;
+    this.priceElement && (this.priceElement.textContent = `${item.price ?? 0} синапсов`);
+    this.image = item.image;
+    this.category = item.category;
+    this.description = item.description;
+
+    if (item.price) {
+      this.buttonState = item.price && this.item ? 'add' : 'disabled';
+    } else {
+      this.buttonState = 'disabled';
+    }
   }
 
   set image(url: string) {

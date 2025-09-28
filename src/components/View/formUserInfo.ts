@@ -27,10 +27,6 @@ export class FormUserInfo extends FormStandart<IFormUserInfo> {
       this.events.emit('contacts:phone', { phone: formattedPhone });
     });
 
-    this.button.addEventListener('click', (event) => {
-      event.preventDefault();
-      this.events.emit('order:submit');
-    });
   }
 
   set email(value: string) {
@@ -39,6 +35,10 @@ export class FormUserInfo extends FormStandart<IFormUserInfo> {
 
   set phone(value: string) {
     this.phoneElement.value = value;
+  }
+
+  protected onSubmit(): void {
+    this.events.emit('order:submit');
   }
 
   private phoneFormat(value: string): string {

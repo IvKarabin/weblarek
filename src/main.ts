@@ -3,7 +3,7 @@ import { API_URL } from './utils/constants';
 import { cloneTemplate, ensureElement } from './utils/utils';
 import { EventEmitter } from './components/base/Events';
 import { Api } from './components/base/Api';
-import { WebLarekApi } from './components/Serverapi/larekserver';
+import { WebLarekApi } from './components/ServerApi/larekServer';
 import { Buyer } from './components/Models/buyer';
 import { Cart } from './components/Models/cart';
 import { Catalog } from './components/Models/catalog';
@@ -28,7 +28,7 @@ const cart = new Cart(events);
 const buyer = new Buyer(events);
 
 const api: IApi = new Api(API_URL);
-const weblarekapi = new WebLarekApi(api);
+const webLarekApi = new WebLarekApi(api);
 
 const container: HTMLElement = ensureElement<HTMLElement>('.page');
 const headerElement: HTMLElement = ensureElement<HTMLElement>('.header', container);
@@ -57,7 +57,7 @@ let isBasketActive = false;
 */
 (async () => {
     try {
-        const productsList: IProduct[] = await weblarekapi.getProducts();
+        const productsList = await webLarekApi.getProducts();
         products.setItems(productsList);
     } catch (error) {
         console.error('Ошибка загрузки данных с сервера', error);
@@ -71,7 +71,7 @@ let isBasketActive = false;
 events.on('products:changed', () => {
     const itemsCards = products.getItems().map((item) => {
         const card = new CardCatalog(cloneTemplate(cardCatalogTemplate), {
-            onClick: () => events.emit('card:select', item),
+            onClick: () => events.emit('card:select', { item, source: 'catalog'}),
         });
         return card.render(item);
     });
@@ -79,20 +79,28 @@ events.on('products:changed', () => {
 });
 
 //Карточки
-events.on('card:select', (item:IProduct) => {
-    products.setSelectedItem(item);
+events.on('card:select', (data: { item:IProduct, source?: 'catalog' | 'basket'}) => {
+    if (data.source === 'catalog') {
+        modal.open();
+        cardPreview.data = data.item;
+        modal.content = cardPreview.render();
+    }
 });
 
-events.on('product:selected', (data:IProduct) => {
-    modal.open();
-    cardPreview.title = data.title;
-    cardPreview.price = data.price ?? 0;
-    cardPreview.image = data.image;
-    cardPreview.category = data.category;
-    cardPreview.description = data.description;
+events.on('product:selected', (data:{ item: IProduct, source: 'catalog' | 'basket'}) => {
+    if (isBasketActive) return;
+    if (data.source !== 'catalog') return;
 
-    if (data.price) {
-        if (cart.hasItem(data.id)) {
+    modal.open();
+
+    cardPreview.title = data.item.title;
+    cardPreview.price = data.item.price ?? 0;
+    cardPreview.image = data.item.image;
+    cardPreview.category = data.item.category;
+    cardPreview.description = data.item.description;
+
+    if (data.item.price) {
+        if (cart.hasItem(data.item.id)) {
             cardPreview.buttonState = 'remove';
         } else {
             cardPreview.buttonState = 'add';
@@ -102,15 +110,14 @@ events.on('product:selected', (data:IProduct) => {
     };
 
     modal.content = cardPreview.render();
-    isBasketActive = false;
 });
 
-events.on('card:add', () => {
-    cart.addItem(products.getSelectedItem() as IProduct);
+events.on('card:add', ({item}: { item: IProduct}) => {
+    cart.addItem(item);
 });
 
-events.on('card:remove', () => {
-  cart.deleteItem(products.getSelectedItem() as IProduct);
+events.on('card:remove', ({item}: { item: IProduct}) => {
+  cart.deleteItem(item);
 });
 
 // Модалки
@@ -121,9 +128,10 @@ events.on('modal:close', () => {
 
 //Корзина
 events.on('basket:open', () => {
-    modal.open();
     isBasketActive = true;
+    modal.open();
     renderBasket();
+    ('basket:open');
     modal.content = basket.render();
 });
 
@@ -143,7 +151,7 @@ events.on('cart:changed', () => {
 });
 
 // Заказ
-events.on('order.payment',(data: {payment: 'card' | 'cash'}) => {
+events.on('order:payment',(data: {payment: 'card' | 'cash'}) => {
     buyer.setPayment(data.payment as 'card' | 'cash');
     validateFormOrder();
 });
@@ -182,6 +190,10 @@ function renderBasket() {
             }
         });
         card.index = index + 1;
+        card.image = {
+            url: item.image ?? '', 
+            title: item.title
+        };
         card.title = item.title;
         card.price = item.price ?? 0;
         return card.render();
@@ -218,8 +230,8 @@ events.on('order:submit', async () => {
     const buyerData = buyer.getData();
     const itemsCart = cart.getItems();
 
-    if (!buyerData.payment || !buyerData.address || !buyerData.email || !buyerData.phone || itemsCart.length === 0 || !order.buttonState || !contacts.buttonState) {
-        order.error = 'заполните все поля';
+   if (!buyerData.payment || !buyerData.address || !buyerData.email || !buyerData.phone || itemsCart.length === 0 ) {
+        contacts.error = 'заполните все поля';
         return;
     };
 
@@ -233,7 +245,7 @@ events.on('order:submit', async () => {
     };
 
     try {
-        const orderResponse = await weblarekapi.postOrder(orderRequest);
+        const orderResponse = await webLarekApi.postOrder(orderRequest);
         success.total = orderResponse.total ?? cart.getTotal();
         if (!modal.isOpen()) {
             modal.open();

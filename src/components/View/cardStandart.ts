@@ -9,12 +9,14 @@ export interface ICardActions {
 export class StandartCard<T> extends Component<T & Pick<IProduct, 'title' | 'price'>> {
   protected titleElement: HTMLElement;
   protected priceElement: HTMLElement;
+  protected imageElement: HTMLImageElement;
 
   constructor(container: HTMLElement) {
     super(container);
 
     this.titleElement = ensureElement<HTMLElement>('.card__title', this.container);
     this.priceElement = ensureElement<HTMLElement>('.card__price', this.container);
+    this.imageElement = ensureElement<HTMLImageElement>('.card__image', this.container);
   }
 
   set title(value: string) {
@@ -29,8 +31,7 @@ export class StandartCard<T> extends Component<T & Pick<IProduct, 'title' | 'pri
     }
   }
 
-  setImage(element: HTMLImageElement, url: string, title: string): void {
-    element.src = url;
-    element.alt = `Изображение ${title}`;
+  set cardImage(data: { url: string; title: string}) {
+    this.setImage(this.imageElement, data.url, `Изображение ${data.title}`);
   }
 }

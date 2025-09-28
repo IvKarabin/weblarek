@@ -64,4 +64,8 @@ export class FormOrder extends FormStandart<IFormOrder> {
   protected updateButtonState(): void {
     this.buttonState = this.validate();
   }
+
+  protected onSubmit(): void {
+    this.events.emit('order:next');
+  }
 }
