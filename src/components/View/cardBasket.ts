@@ -31,5 +31,4 @@ export class CardBasket extends StandartCard<ICardBasket> {
     this.indexElement.textContent = String(value);
   }
 
-
 }
